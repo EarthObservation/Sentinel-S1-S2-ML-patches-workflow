@@ -2,22 +2,22 @@
 Name:
     shub_s1_s2_download_workflow.py
 Description - short:
-	This Python workflow prepares Sentinel-1 and Sentinel-2 layer stacks described in the article "Machine learning-ready
-	remote sensing data for Maya archaeology" by Kokalj et al. (2023).
-	Sentinel Hub is used as a source for Sentinel-1 and Sentinel-2 data, so credentials (INSTANCE_ID; CLIENT_ID;
-	CLIENT_SECRET) to access it are required (https://www.sentinel-hub.com).
-	Some basic processing information is displayed in the Python console during runtime.
+    This Python workflow prepares Sentinel-1 and Sentinel-2 layer stacks described in the article "Machine
+    learning-ready remote sensing data for Maya archaeology" by Kokalj et al. (2023).
+    Sentinel Hub is used as a source for Sentinel-1 and Sentinel-2 data, so credentials (INSTANCE_ID; CLIENT_ID;
+    CLIENT_SECRET) to access it are required (https://www.sentinel-hub.com).
+    Some basic processing information is displayed in the Python console during runtime.
 Description - long:
-	A) For Sentinel-2: Data for selected 17 cloud-free dates on selected AOIs are loaded from Sentinel Hub. For each
-	date, all image bands except B10 (i.e. 12 layers) are loaded and a cloud mask layer CLM is calculated.
-	All 13 layers of all 17 dates are stacked into an array of 221 layers and stored in TIFF format.
-	B) For Sentinel-1: A statistical layer stack is created for the years 2017-2020. Six per-pixel statistics (mean,
-	median, standard deviation, coefficient of variance, 5th percentile and 95th percentile) are calculated for each
-	year separately and for the entire time span, separately for ASC and DESC orbits and separately for VV and VH
-	polarisations. Existing acquisition dates are filtered to obtain only unique data.
-	Data are loaded separately for each year and ASC/DES collection, and converted to dB.
-	All 6 layers/parameters of all both polarizations and orbit directions (24 layers per year) for all four years and
-	the entire time span are stacked into a 120-layer array and stored as TIF.
+    A) For Sentinel-2: Data for selected 17 cloud-free dates on selected AOIs are loaded from Sentinel Hub. For each
+    date, all image bands except B10 (i.e. 12 layers) are loaded and a cloud mask layer CLM is calculated.
+    All 13 layers of all 17 dates are stacked into an array of 221 layers and stored in TIFF format.
+    B) For Sentinel-1: A statistical layer stack is created for the years 2017-2020. Six per-pixel statistics (mean,
+    median, standard deviation, coefficient of variance, 5th percentile and 95th percentile) are calculated for each
+    year separately and for the entire time span, separately for ASC and DESC orbits and separately for VV and VH
+    polarisations. Existing acquisition dates are filtered to obtain only unique data.
+    Data are loaded separately for each year and ASC/DES collection, and converted to dB.
+    All 6 layers/parameters of all both polarizations and orbit directions (24 layers per year) for all four years and
+    the entire time span are stacked into a 120-layer array and stored as TIF.
     C) The outputs are LZW compressed and contain geo-reference information. Due to the large amount of Sentinel-1 data
     considered, it takes about 3 minutes to download and process a single tile.
 
@@ -60,8 +60,8 @@ Configuration parameters
 '''
 # Set INSTANCE_ID from configuration in SentinelHub account
 INSTANCE_ID = 'INSERT-INSTANCE-ID'  # SH configuration, string parameter
-CLIENT_ID = 'INSERT-CLIENT-ID'  # if already in SH config file (config.json) ($ sentinelhub.config --show), leave it as is
-CLIENT_SECRET = 'INSERT-CLIENT-SECRET'  # if already in SH config file (config.json) ($ sentinelhub.config --show), leave it as is
+CLIENT_ID = 'INSERT-CLIENT-ID'  # if already in SH config file ($ sentinelhub.config --show), leave it as is
+CLIENT_SECRET = 'INSERT-CLIENT-SECRET'  # if already in SH config file ($ sentinelhub.config --show), leave it as is
 
 if INSTANCE_ID and CLIENT_ID and CLIENT_SECRET:
     config = SHConfig()
@@ -330,7 +330,7 @@ def process_one_bbox(bbox_indx, aoi_bbox, aoi_cols_rows, list_s2_dates):
         data_s2_list = dl_client.download(list_of_requests, max_threads=5)
 
         # Init numpy array and build it by appending it from the list
-        data_s2_np = np.array([], dtype=np.int16).reshape(aoi_cols_rows[1], aoi_cols_rows[0], 0)
+        data_s2_np = np.array([], dtype=np.int16).reshape((aoi_cols_rows[1], aoi_cols_rows[0], 0))
         for curr_arr in data_s2_list:
             data_s2_np = np.concatenate((data_s2_np, np.asarray(curr_arr)), axis=2)
 
@@ -370,7 +370,7 @@ def process_one_bbox(bbox_indx, aoi_bbox, aoi_cols_rows, list_s2_dates):
         data_collection_list = [DataCollection.SENTINEL1_IW_ASC, DataCollection.SENTINEL1_IW_DES]
 
         # Init out raster, i.e. stack of 120 layers
-        out_stack = np.array([], dtype=np.float32).reshape(aoi_cols_rows[1], aoi_cols_rows[0], 0)
+        out_stack = np.array([], dtype=np.float32).reshape((aoi_cols_rows[1], aoi_cols_rows[0], 0))
 
         # Repeat for all single years YYYY or year intervals YYYY-YYYY
         for curr_year_str in s1_year_list:
@@ -426,7 +426,7 @@ def process_one_bbox(bbox_indx, aoi_bbox, aoi_cols_rows, list_s2_dates):
                     data_s1_list = dl_client.download(list_of_requests, max_threads=5)
 
                     # Init numpy array and build it by appending data from the list
-                    data_s1_np = np.array([], dtype=np.float32).reshape(aoi_cols_rows[1], aoi_cols_rows[0], 0)
+                    data_s1_np = np.array([], dtype=np.float32).reshape((aoi_cols_rows[1], aoi_cols_rows[0], 0))
                     for curr_arr in data_s1_list:
                         data_s1_np = np.concatenate((data_s1_np, np.asarray(curr_arr)), axis=2)
                     # Print some basic info of loaded S1 data
@@ -443,8 +443,8 @@ def process_one_bbox(bbox_indx, aoi_bbox, aoi_cols_rows, list_s2_dates):
                     out_stack = np.concatenate((out_stack, curr_out_stack), axis=2)
 
                 else:
-                    # If no images are found, append empty statistics to output layer-stack
-                    curr_out_stack = np.zeros((aoi_cols_rows[1], aoi_cols_rows[0], 12), dtype=np.float32)
+                    # If no images are found, append NaN values to output layer-stack
+                    curr_out_stack = np.full((aoi_cols_rows[1], aoi_cols_rows[0], 12), np.nan, dtype=np.float32)
                     out_stack = np.concatenate((out_stack, curr_out_stack), axis=2)
 
         # Save final raster as geotiff
